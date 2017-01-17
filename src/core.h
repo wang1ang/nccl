@@ -141,6 +141,7 @@ extern DebugLevel ncclDebugLevel;
   } \
 } while (0);
 
+#ifndef _MSC_VER
 #ifdef PROFAPI
 #define NCCL_API(ret, func, args...)        \
     __attribute__ ((visibility("default"))) \
@@ -156,7 +157,8 @@ extern DebugLevel ncclDebugLevel;
     __attribute__ ((visibility("default"))) \
     ret func(args)
 #endif // end PROFAPI
+#else
+#define NCCL_API(ret, func, ...) extern "C" ret func(__VA_ARGS__)
+#endif  // end _MSC_VER
 
-
-#endif // end include guard
-
+#endif  // end include guard

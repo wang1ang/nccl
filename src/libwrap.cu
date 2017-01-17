@@ -5,7 +5,11 @@
  ************************************************************************/
 
 #include "libwrap.h"
+#ifndef _MSC_VER
 #include <dlfcn.h>
+#else
+#include <windows.h>
+#endif  // end _MSC_VER
 #include "core.h"
 
 int symbolsLoaded = 0;
@@ -18,29 +22,68 @@ static nvmlReturn_t (*nvmlInternalDeviceSetCpuAffinity)(nvmlDevice_t device);
 static nvmlReturn_t (*nvmlInternalDeviceClearCpuAffinity)(nvmlDevice_t device);
 static const char* (*nvmlInternalErrorString)(nvmlReturn_t r);
 
+#ifndef _MSC_VER
+typedef void* ncclHandle;
+#else
+typedef HMODULE ncclHandle;
+#endif
+
+ncclHandle ncclLoadLibrary(const char* name) {
+#ifndef _MSC_VER
+  return dlopen(name, RTLD_NOW);
+#else
+  return LoadLibrary(name);  // end _MSC_VER
+#endif
+}
+
+void* ncclLoadSymbol(ncclHandle handle, const char* name) {
+  void* tmp;
+#ifndef _MSC_VER
+  tmp = dlsym(handle, symbol);
+  if (tmp == NULL) {
+    WARN("dlsym failed on %s - %s", symbol, dlerror());
+  }
+#else
+  tmp = (void*)GetProcAddress(handle, name);
+#endif
+  return tmp;
+}
+
+void ncclClose(ncclHandle handle) {
+#ifndef _MSC_VER
+  dlclose(nvmlhandle);
+#else
+  FreeLibrary(handle);
+#endif
+}
+
 ncclResult_t wrapSymbols(void) {
 
   if (symbolsLoaded)
     return ncclSuccess;
 
-  static void* nvmlhandle = NULL;
+  static ncclHandle nvmlhandle = NULL;
   void* tmp;
   void** cast;
 
-  nvmlhandle=dlopen("libnvidia-ml.so", RTLD_NOW);
+#ifndef _MSC_VER
+  nvmlhandle = ncclLoadLibrary("libnvidia-ml.so");
   if (!nvmlhandle) {
-    nvmlhandle=dlopen("libnvidia-ml.so.1", RTLD_NOW);
-    if (!nvmlhandle) {
-      WARN("Failed to open libnvidia-ml.so[.1]");
-      goto teardown;
-    }
+    nvmlhandle = ncclLoadLibrary("libnvidia-ml.so.1");
+  }
+#else
+  nvmlhandle = ncclLoadLibrary("nvml.dll");
+#endif  // end _MSC_VER
+
+  if (!nvmlhandle) {
+    WARN("Failed to open libnvidia-ml.so[.1]");
+    goto teardown;
   }
 
   #define LOAD_SYM(handle, symbol, funcptr) do {         \
     cast = (void**)&funcptr;                             \
-    tmp = dlsym(handle, symbol);                         \
+    tmp = ncclLoadSymbol(handle, symbol);                \
     if (tmp == NULL) {                                   \
-      WARN("dlsym failed on %s - %s", symbol, dlerror());\
       goto teardown;                                     \
     }                                                    \
     *cast = tmp;                                         \
@@ -65,7 +108,7 @@ ncclResult_t wrapSymbols(void) {
   nvmlInternalDeviceSetCpuAffinity = NULL;
   nvmlInternalDeviceClearCpuAffinity = NULL;
 
-  if (nvmlhandle != NULL) dlclose(nvmlhandle);
+  if (nvmlhandle != NULL) ncclClose(nvmlhandle);
   return ncclSystemError;
 }
 
