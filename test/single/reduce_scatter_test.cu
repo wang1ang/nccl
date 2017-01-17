@@ -4,6 +4,7 @@
  * See LICENCE.txt for license information
  ************************************************************************/
 
+#include <algorithm>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -279,7 +280,7 @@ int main(int argc, char* argv[]) {
   printf("\n");
   if (errors || avg_bw < check_avg_bw)
     exit(EXIT_FAILURE);
-  else 
+  else
     exit(EXIT_SUCCESS);
 }
 

@@ -7,6 +7,8 @@ find_package(CUDA REQUIRED)
 file(GLOB _cuda_src src/*.cu)
 file(GLOB _cuda_hdr src/*.h)
 
+include_directories(src)
+
 add_definitions(-DWIN32_LEAN_AND_MEAN
                 -DNOMINMAX
                 -DNCCL_MAJOR=${PROJECT_VERSION_MAJOR}
@@ -15,16 +17,16 @@ add_definitions(-DWIN32_LEAN_AND_MEAN
                 -DCUDA_MAJOR=${CUDA_VERSION_MAJOR}
                 -DCUDA_MINOR=${CUDA_VERSION_MINOR}
                 )
-                
-if(MSVC AND CMAKE_GENERATOR MATCHES Ninja)        
+
+if(MSVC AND CMAKE_GENERATOR MATCHES Ninja)
   foreach(_suffix "" ${CMAKE_CONFIGURATION_TYPES})
     if(NOT _suffix STREQUAL "")
       string(TOUPPER _${_suffix} _suffix)
     endif()
     set(CMAKE_CXX_FLAGS${_suffix} "${CMAKE_CXX_FLAGS${_suffix}} /FS")
-    set(CMAKE_C_FLAGS${_suffix} "${CMAKE_C_FLAGS${_suffix}} /FS")              
+    set(CMAKE_C_FLAGS${_suffix} "${CMAKE_C_FLAGS${_suffix}} /FS")
   endforeach()
-endif()                
+endif()
 
 cuda_add_library(nccl STATIC ${_cuda_src} ${_cuda_hdr})
 
@@ -33,3 +35,5 @@ install(TARGETS nccl
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
         )
+
+add_subdirectory(test)
