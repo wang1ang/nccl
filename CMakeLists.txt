@@ -36,4 +36,6 @@ install(TARGETS nccl
         ARCHIVE DESTINATION lib
         )
 
+install(FILES src/nccl.h DESTINATION include)
+
 add_subdirectory(test)
