@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.4)
 
 project(nccl VERSION 1.3.2)
 
+option(NCCL_BUILD_TESTS "Build tests" ON)
+
 find_package(CUDA REQUIRED)
 
 file(GLOB _cuda_src src/*.cu)
@@ -38,4 +40,6 @@ install(TARGETS nccl
 
 install(FILES src/nccl.h DESTINATION include)
 
-add_subdirectory(test)
+if(NCCL_BUILD_TESTS)
+    add_subdirectory(test)
+endif()
